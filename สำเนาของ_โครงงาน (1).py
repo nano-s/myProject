@@ -23,7 +23,19 @@ st.download_button("📥 ดาวน์โหลดไฟล์", data, file_na
 import matplotlib.pyplot as plt
 
 # อัปโหลดภาพ
-uploaded = files.upload()
+#uploaded = files.upload()
+import streamlit as st
+from PIL import Image
+
+st.title("🧼 วิเคราะห์สารเรืองแสงจากภาพมือ")
+uploaded_file = st.file_uploader("📷 อัปโหลดภาพ", type=["jpg", "png", "jpeg"])
+
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="ภาพที่อัปโหลด", use_column_width=True)
+    st.markdown("🔍 พบสารเรืองแสงประมาณ **12.5%** ของพื้นที่ภาพ (ตัวอย่าง)")
+else:
+    st.info("กรุณาอัปโหลดภาพเพื่อเริ่มวิเคราะห์")
 
 # โหลดภาพจากไฟล์ที่อัปโหลด
 for filename in uploaded.keys():
