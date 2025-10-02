@@ -39,7 +39,7 @@ else:
 
 # โหลดภาพจากไฟล์ที่อัปโหลด
 #for filename in uploaded.keys():
-    pil_image = Image.open(filename).convert('RGB')
+    pil_image = Image.open(uploaded_file).convert('RGB')
     image = np.array(pil_image)
 
 # แปลงภาพจาก RGB เป็น HSV
