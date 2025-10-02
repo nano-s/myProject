@@ -38,7 +38,7 @@ else:
     st.info("กรุณาอัปโหลดภาพเพื่อเริ่มวิเคราะห์")
 
 # โหลดภาพจากไฟล์ที่อัปโหลด
-for filename in uploaded.keys():
+#for filename in uploaded.keys():
     pil_image = Image.open(filename).convert('RGB')
     image = np.array(pil_image)
 
