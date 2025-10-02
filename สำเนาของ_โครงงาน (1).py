@@ -9,7 +9,7 @@ Original file is located at
 
 # ติดตั้งไลบรารีที่จำเป็น
 #!pip install opencv-python-headless numpy pillow matplotlib
-
+pip install opencv-python
 # นำเข้าไลบรารี
 import cv2
 import numpy as np
