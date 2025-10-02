@@ -14,7 +14,12 @@ Original file is located at
 import cv2
 import numpy as np
 from PIL import Image
-from google.colab import files
+#from google.colab import files
+import streamlit as st
+
+data = "นี่คือข้อมูลที่คุณสามารถดาวน์โหลดได้"
+st.download_button("📥 ดาวน์โหลดไฟล์", data, file_name="result.txt")
+
 import matplotlib.pyplot as plt
 
 # อัปโหลดภาพ
