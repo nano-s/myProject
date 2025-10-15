@@ -5,7 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="UV Hand Analyzer", layout="centered")
-st.title("🖐️ วิเคราะห์สารเรืองแสงจากรูปมือจริง")
+st.title("🖐️ วิเคราะห์สารเรืองแสงจากรูปมือเส้น")
 
 uploaded_file = st.file_uploader("📷 อัปโหลดภาพมือภายใต้แสง UVA", type=["jpg", "png", "jpeg"])
 
@@ -19,13 +19,22 @@ if uploaded_file:
     upper_fluorescent = np.array([130, 255, 255])
     mask = cv2.inRange(hsv, lower_fluorescent, upper_fluorescent)
 
-    # สร้าง mask รูปมือจากภาพจริง (threshold เพื่อแยกมือออกจากพื้นหลัง)
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    _, hand_mask = cv2.threshold(gray, 30, 255, cv2.THRESH_BINARY)
+    # สร้าง mask รูปมือเส้นแบบง่าย (ขนาด 512x512)
+    hand_mask = np.zeros((512, 512), dtype=np.uint8)
 
-    # วิเคราะห์เฉพาะบริเวณที่เป็นมือ
-    hand_area = cv2.countNonZero(hand_mask)
-    fluorescent_area = cv2.countNonZero(cv2.bitwise_and(mask, hand_mask))
+    # วาดฝ่ามือ
+    cv2.ellipse(hand_mask, (256, 350), (100, 120), 0, 0, 360, 255, thickness=cv2.FILLED)
+
+    # วาดนิ้วทั้ง 5
+    for i, x in enumerate([180, 220, 256, 292, 330]):
+        cv2.rectangle(hand_mask, (x - 10, 150), (x + 10, 350), 255, thickness=cv2.FILLED)
+
+    # ปรับขนาด mask ให้ตรงกับภาพจริง
+    hand_mask_resized = cv2.resize(hand_mask, (mask.shape[1], mask.shape[0]))
+
+    # วิเคราะห์เฉพาะบริเวณที่เป็นรูปมือ
+    hand_area = cv2.countNonZero(hand_mask_resized)
+    fluorescent_area = cv2.countNonZero(cv2.bitwise_and(mask, hand_mask_resized))
     percentage = (fluorescent_area / hand_area) * 100 if hand_area > 0 else 0
 
     # แสดงภาพ
@@ -38,8 +47,8 @@ if uploaded_file:
     ax[1].imshow(mask, cmap='gray')
     ax[1].set_title("สารเรืองแสง")
     ax[1].axis('off')
-    ax[2].imshow(hand_mask, cmap='gray')
-    ax[2].set_title("พื้นที่รูปมือ")
+    ax[2].imshow(hand_mask_resized, cmap='gray')
+    ax[2].set_title("รูปมือที่ใช้วิเคราะห์")
     ax[2].axis('off')
     st.pyplot(fig)
 
