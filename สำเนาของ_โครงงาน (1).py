@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 
 st.set_page_config(page_title="UV Hand Analyzer", layout="centered")
-st.title("🖐️ วิเคราะห์จุดเรืองแสงจากภาพมือจริง")
+st.title("🖐️ วิเคราะห์จุดเรืองแสงและคำแนะนำการล้างมือ")
 
 # อัปโหลดภาพมือจริงและภาพเส้นมือ
 uploaded_file = st.file_uploader("📷 อัปโหลดภาพมือภายใต้แสง UVA", type=["jpg", "png", "jpeg"])
@@ -16,40 +16,54 @@ if uploaded_file and outline_file:
     image = np.array(pil_image)
     hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
 
-    # กำหนดช่วงสีของสารเรืองแสง
-    lower_fluorescent = np.array([105, 80, 160])
-    upper_fluorescent = np.array([130, 255, 255])
-    uv_mask = cv2.inRange(hsv, lower_fluorescent, upper_fluorescent)
-
     # โหลดภาพเส้นมือ
     outline_pil = Image.open(outline_file).convert('L')
     hand_outline = np.array(outline_pil)
     _, hand_mask = cv2.threshold(hand_outline, 127, 255, cv2.THRESH_BINARY)
+    hand_mask_resized = cv2.resize(hand_mask, (image.shape[1], image.shape[0]))
 
-    # ปรับขนาดให้ตรงกับภาพจริง
-    hand_mask_resized = cv2.resize(hand_mask, (uv_mask.shape[1], uv_mask.shape[0]))
-
-    # วิเคราะห์
-    hand_area = cv2.countNonZero(hand_mask_resized)
+    # สร้าง mask เรืองแสง
+    lower_fluorescent = np.array([105, 80, 160])
+    upper_fluorescent = np.array([130, 255, 255])
+    uv_mask = cv2.inRange(hsv, lower_fluorescent, upper_fluorescent)
     glow_mask = cv2.bitwise_and(uv_mask, hand_mask_resized)
-    glow_area = cv2.countNonZero(glow_mask)
-    percent = (glow_area / hand_area) * 100 if hand_area > 0 else 0
 
-    # สร้างภาพไฮไลต์จุดเรืองแสงบนมือจริง
-    highlight = cv2.bitwise_and(image, image, mask=glow_mask)
-    highlight[np.where(glow_mask == 0)] = [0, 0, 0]  # พื้นหลังดำ
+    # สร้างโซนต่าง ๆ บนมือ (จำลองตำแหน่ง)
+    zones = {
+        "นิ้วมือ": cv2.rectangle(np.zeros_like(hand_mask_resized), (100, 0), (400, 200), 255, -1),
+        "เล็บ": cv2.rectangle(np.zeros_like(hand_mask_resized), (100, 0), (400, 50), 255, -1),
+        "ฝ่ามือ": cv2.rectangle(np.zeros_like(hand_mask_resized), (150, 250), (350, 400), 255, -1),
+        "ข้อมือ": cv2.rectangle(np.zeros_like(hand_mask_resized), (150, 400), (350, 512), 255, -1),
+        "ซอกนิ้ว": cv2.rectangle(np.zeros_like(hand_mask_resized), (180, 100), (320, 200), 255, -1),
+        "หลังมือ": cv2.rectangle(np.zeros_like(hand_mask_resized), (100, 200), (400, 250), 255, -1),
+    }
 
-    # แสดงเฉพาะภาพมือจริงที่มีจุดเรืองแสง
-    st.image(highlight, caption="📍 บริเวณที่ควรล้างมือเพิ่มเติม", use_column_width=True)
-    st.markdown(f"🔍 พบจุดเรืองแสงประมาณ **{percent:.2f}%** ของพื้นที่รูปมือ")
+    # วิเคราะห์แต่ละโซน
+    results = {}
+    for name, zone_mask in zones.items():
+        zone_mask = cv2.resize(zone_mask, (image.shape[1], image.shape[0]))
+        zone_area = cv2.countNonZero(zone_mask)
+        zone_glow = cv2.countNonZero(cv2.bitwise_and(glow_mask, zone_mask))
+        percent = (zone_glow / zone_area) * 100 if zone_area > 0 else 0
+        results[name] = percent
 
-    if percent > 5:
-        st.warning("🧼 ควรล้างมือเพิ่มเติม โดยเฉพาะบริเวณที่เห็นจุดเรืองแสงในภาพด้านบน")
-    else:
-        st.success("✅ มือสะอาดดี ไม่พบสารเรืองแสงในระดับที่ต้องล้างเพิ่ม")
+    # แสดงภาพมือจริง
+    st.image(pil_image, caption="ภาพมือจริงที่อัปโหลด", use_column_width=True)
 
-elif uploaded_file and not outline_file:
-    st.info("กรุณาอัปโหลดภาพเส้นมือ (มือ = ขาว, พื้นหลัง = ดำ) เพื่อใช้เป็น mask ในการวิเคราะห์")
+    # แสดงผลการวิเคราะห์
+    st.markdown("### 📊 ผลการวิเคราะห์แต่ละบริเวณ")
+    for name, percent in results.items():
+        st.markdown(f"- **{name}**: {percent:.1f}%")
+
+    # สรุปคำแนะนำ
+    st.markdown("### 🧼 คำแนะนำในการล้างมือเพิ่มเติม")
+    for name, percent in results.items():
+        if percent > 10:
+            st.markdown(f"🔴 ควรล้างบริเวณ **{name}** ให้สะอาดขึ้น (พบสารเรืองแสง {percent:.1f}%)")
+        elif percent > 5:
+            st.markdown(f"🟠 ล้างบริเวณ **{name}** เพิ่มเติมเล็กน้อย ({percent:.1f}%)")
+        else:
+            st.markdown(f"🟢 บริเวณ **{name}** สะอาดดี ({percent:.1f}%)")
 
 else:
     st.info("กรุณาอัปโหลดภาพมือภายใต้แสง UVA และภาพเส้นมือเพื่อเริ่มวิเคราะห์")
