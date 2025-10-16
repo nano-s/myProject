@@ -52,11 +52,6 @@ if uploaded_file:
     glow_area = cv2.countNonZero(glow_mask)
     clean_percent = 100 - ((glow_area / hand_area) * 100 if hand_area > 0 else 0)
 
-    # สร้างภาพไฮไลต์จุดเรืองแสง
-    highlight = cv2.bitwise_and(image, image, mask=glow_mask)
-    highlight[np.where(glow_mask == 0)] = [0, 0, 0]
-
-    st.image(highlight, caption="📍 จุดที่พบสารเรืองแสงบนมือ", use_column_width=True)
     st.markdown(f"🧼 **ความสะอาดของมือโดยรวม: {clean_percent:.2f}%**")
 
     # สร้างโซนต่าง ๆ บนมือ (ตำแหน่งจำลอง)
