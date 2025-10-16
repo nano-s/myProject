@@ -5,9 +5,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="UV Hand Analyzer", layout="centered")
-st.title("🖐️ วิเคราะห์สารเรืองแสงจากภาพมือจริง")
+st.title("🖐️ วิเคราะห์สารเรืองแสงจากรูปมือสมจริง")
 
-# อัปโหลดภาพมือจริงภายใต้แสง UVA
 uploaded_file = st.file_uploader("📷 อัปโหลดภาพมือภายใต้แสง UVA", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
@@ -21,15 +20,24 @@ if uploaded_file:
     upper_fluorescent = np.array([130, 255, 255])
     uv_mask = cv2.inRange(hsv, lower_fluorescent, upper_fluorescent)
 
-    # สร้าง mask รูปมือด้วยโค้ด (ขนาด 512x512)
+    # สร้าง mask รูปมือสมจริงด้วยโค้ด (ขนาด 512x512)
     hand_mask = np.zeros((512, 512), dtype=np.uint8)
 
-    # วาดฝ่ามือ
-    cv2.ellipse(hand_mask, (256, 350), (100, 120), 0, 0, 360, 255, thickness=cv2.FILLED)
+    # วาดฝ่ามือโค้งมน
+    cv2.ellipse(hand_mask, (256, 360), (90, 110), 0, 0, 360, 255, thickness=cv2.FILLED)
 
-    # วาดนิ้วทั้ง 5
-    for i, x in enumerate([180, 220, 256, 292, 330]):
-        cv2.rectangle(hand_mask, (x - 10, 150), (x + 10, 350), 255, thickness=cv2.FILLED)
+    # วาดนิ้วแบบสมจริง (โค้งและเรียงตามตำแหน่ง)
+    finger_positions = [160, 200, 256, 312, 352]
+    finger_lengths = [160, 180, 200, 180, 160]
+
+    for i, x in enumerate(finger_positions):
+        y_top = 360 - finger_lengths[i]
+        cv2.ellipse(hand_mask, (x, y_top + 20), (12, 20), 0, 0, 360, 255, thickness=cv2.FILLED)
+        cv2.rectangle(hand_mask, (x - 10, y_top), (x + 10, 360), 255, thickness=cv2.FILLED)
+
+    # วาดนิ้วโป้งเฉียง
+    thumb_pts = np.array([[120, 370], [170, 370], [170, 410], [120, 400]], np.int32)
+    cv2.fillPoly(hand_mask, [thumb_pts], 255)
 
     # ปรับขนาดให้ตรงกับภาพจริง
     hand_mask_resized = cv2.resize(hand_mask, (uv_mask.shape[1], uv_mask.shape[0]))
@@ -52,7 +60,7 @@ if uploaded_file:
     ax[1].axis('off')
 
     ax[2].imshow(hand_mask_resized, cmap='gray')
-    ax[2].set_title("รูปมือที่ใช้วิเคราะห์")
+    ax[2].set_title("รูปมือสมจริงที่ใช้วิเคราะห์")
     ax[2].axis('off')
 
     st.pyplot(fig)
