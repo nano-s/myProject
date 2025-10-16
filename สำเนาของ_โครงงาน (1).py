@@ -5,7 +5,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 st.set_page_config(page_title="UV Hand Analyzer", layout="centered")
-st.title("🖐️ วิเคราะห์สารเรืองแสงจากรูปมือสมจริงระดับสูง")
+st.title("🖐️ วิเคราะห์สารเรืองแสงจากรูปมือสมจริงขนาดใหญ่")
 
 uploaded_file = st.file_uploader("📷 อัปโหลดภาพมือภายใต้แสง UVA", type=["jpg", "png", "jpeg"])
 
@@ -20,36 +20,34 @@ if uploaded_file:
     upper_fluorescent = np.array([130, 255, 255])
     uv_mask = cv2.inRange(hsv, lower_fluorescent, upper_fluorescent)
 
-    # สร้าง mask มือสมจริง (ขนาด 512x512)
+    # สร้าง mask มือสมจริงขนาดใหญ่ (ขนาด 512x512)
     hand_mask = np.zeros((512, 512), dtype=np.uint8)
 
-    # วาดฝ่ามือโค้งมน
-    cv2.ellipse(hand_mask, (256, 360), (90, 110), 0, 0, 360, 255, thickness=cv2.FILLED)
+    # วาดฝ่ามือใหญ่ขึ้น
+    cv2.ellipse(hand_mask, (256, 380), (120, 140), 0, 0, 360, 255, thickness=cv2.FILLED)
 
-    # วาดนิ้วแต่ละนิ้วแบบแยกข้อพับ
-    def draw_finger(x_center, y_base, length, width=20):
+    # ฟังก์ชันวาดนิ้วแบบแยกข้อพับ
+    def draw_finger(x_center, y_base, length, width=28):
         segment = length // 3
         for i in range(3):
             y_top = y_base - segment * (i + 1)
             y_bottom = y_base - segment * i
             cv2.rectangle(hand_mask, (x_center - width//2, y_top), (x_center + width//2, y_bottom), 255, thickness=cv2.FILLED)
-        # ปลายนิ้ว
-        cv2.ellipse(hand_mask, (x_center, y_base - length - 10), (width//2, 10), 0, 0, 360, 255, thickness=cv2.FILLED)
+        cv2.ellipse(hand_mask, (x_center, y_base - length - 12), (width//2, 12), 0, 0, 360, 255, thickness=cv2.FILLED)
 
-    # ตำแหน่งนิ้วมือ
+    # ตำแหน่งนิ้วมือ (ปรับให้กว้างขึ้น)
     fingers = [
-        {"x": 160, "length": 140},  # pinky
-        {"x": 200, "length": 160},  # ring
-        {"x": 256, "length": 180},  # middle
-        {"x": 312, "length": 160},  # index
-        {"x": 352, "length": 120},  # thumb (เฉียง)
+        {"x": 140, "length": 160},  # pinky
+        {"x": 190, "length": 180},  # ring
+        {"x": 256, "length": 200},  # middle
+        {"x": 322, "length": 180},  # index
     ]
 
-    for f in fingers[:-1]:
-        draw_finger(f["x"], 360, f["length"])
+    for f in fingers:
+        draw_finger(f["x"], 380, f["length"])
 
-    # วาดนิ้วโป้งเฉียง
-    thumb_pts = np.array([[370, 370], [420, 330], [430, 340], [380, 390]], np.int32)
+    # วาดนิ้วโป้งใหญ่ขึ้นและเฉียง
+    thumb_pts = np.array([[370, 400], [440, 340], [455, 355], [385, 420]], np.int32)
     cv2.fillPoly(hand_mask, [thumb_pts], 255)
 
     # ปรับขนาดให้ตรงกับภาพจริง
@@ -73,7 +71,7 @@ if uploaded_file:
     ax[1].axis('off')
 
     ax[2].imshow(hand_mask_resized, cmap='gray')
-    ax[2].set_title("รูปมือสมจริงระดับสูง")
+    ax[2].set_title("รูปมือสมจริงขนาดใหญ่")
     ax[2].axis('off')
 
     st.pyplot(fig)
